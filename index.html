@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Duke's Bakery & Coffee — Smart POS</title>
+
+<style>
+body{
+  margin:0;
+  font-family:'Segoe UI',sans-serif;
+  background:linear-gradient(135deg,#ffffff,#f7f7f7);
+  color:#222;
+}
+.hidden{display:none}
+
+/* ================= GOLD FIRE ANIMATION ================= */
+@keyframes goldFire{
+  0%{box-shadow:0 0 5px gold;}
+  50%{box-shadow:0 0 20px orange;}
+  100%{box-shadow:0 0 5px gold;}
+}
+
+/* ================= TOP NAVIGATION ================= */
+.top-nav{
+  position:fixed;
+  top:0;
+  width:100%;
+  height:70px;
+  background:#f0f0f3;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 25px;
+  box-shadow:8px 8px 18px #d1d9e6,-8px -8px 18px #ffffff;
+  z-index:1000;
+  animation:goldFire 3s infinite;
+}
+
+.logo{font-size:20px;font-weight:700}
+
+.logout-btn{
+  border:none;
+  padding:8px 16px;
+  border-radius:12px;
+  background:#f0f0f3;
+  box-shadow:5px 5px 12px #d1d9e6,-5px -5px 12px #ffffff;
+  cursor:pointer;
+  font-weight:bold;
+  transition:.3s;
+}
+.logout-btn:hover{animation:goldFire 2s infinite;transform:translateY(-2px)}
+
+.page{display:none;padding:100px 20px 120px 20px}
+.active-page{display:block}
+
+.neu{
+  background:#f0f0f3;
+  border-radius:18px;
+  box-shadow:8px 8px 18px #d1d9e6,-8px -8px 18px #ffffff;
+}
+
+.neu-btn{
+  border:none;
+  padding:6px 12px;
+  border-radius:12px;
+  background:#f0f0f3;
+  box-shadow:5px 5px 12px #d1d9e6,-5px -5px 12px #ffffff;
+  cursor:pointer;
+  font-weight:bold;
+  transition:.3s;
+}
+
+.neu-btn:hover{animation:goldFire 2s infinite;transform:translateY(-2px)}
+.neu-btn:active{box-shadow:inset 4px 4px 8px #d1d9e6,inset -4px -4px 8px #ffffff}
+
+input{
+  padding:6px;
+  border:none;
+  border-radius:10px;
+  width:60px;
+  box-shadow:inset 3px 3px 6px #d1d9e6,inset -3px -3px 6px #ffffff;
+}
+
+/* ================= WEEK BUTTONS ================= */
+.week-btn{
+  display:inline-block;
+  padding:8px 14px;
+  margin:5px;
+  border-radius:20px;
+  background:#f0f0f3;
+  box-shadow:5px 5px 12px #d1d9e6,-5px -5px 12px #ffffff;
+}
+.active-day{
+  box-shadow:inset 4px 4px 8px #d1d9e6,inset -4px -4px 8px #ffffff;
+  background:#16a34a;
+  color:white;
+}
+
+/* ================= TABLE ================= */
+table{width:100%;border-collapse:separate;border-spacing:0 14px}
+th,td{padding:10px;text-align:center}
+.row{
+  background:#f0f0f3;
+  border-radius:16px;
+  box-shadow:8px 8px 18px #d1d9e6,-8px -8px 18px #ffffff;
+}
+
+.bottom-nav{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:#f0f0f3;
+  display:flex;
+  justify-content:space-around;
+  padding:10px 0;
+  box-shadow:8px -8px 18px #d1d9e6,-8px 8px 18px #ffffff;
+}
+
+.bottom-nav button{
+  border:none;
+  background:none;
+  font-weight:bold;
+  padding:6px 12px;
+  border-radius:12px;
+  transition:.3s;
+}
+.bottom-nav button:hover{animation:goldFire 2s infinite}
+
+.history-card{padding:20px;margin-bottom:20px}
+
+</style>
+</head>
+<body>
+
+<div id="loginPage" style="height:100vh;display:flex;justify-content:center;align-items:center;">
+  <div class="neu" style="padding:40px;width:300px;text-align:center;">
+    <h2>🔐 Owner Login</h2>
+    <input id="password" type="password" placeholder="Enter Password"><br><br>
+    <button class="neu-btn" onclick="login()">Access</button>
+    <p id="loginError" style="color:red"></p>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+
+<div class="top-nav">
+  <div class="logo">☕🍞 Duke's Bakery & Coffee</div>
+  <button class="logout-btn" onclick="logout()">Logout</button>
+</div>
+
+<div id="home" class="page active-page">
+  <h2>🏠 Daily Sales Dashboard</h2>
+  <div id="weekDays"></div><br>
+  <div id="productTable"></div><br>
+  <div class="neu" style="padding:20px;text-align:center;">
+    <h3>💰 Total Revenue Today: <span id="totalRevenue">UGX 0</span></h3>
+  </div>
+</div>
+
+<div id="stock" class="page">
+  <h2>📦 Stock & Family Usage</h2>
+  <div id="stockTable"></div>
+</div>
+
+<div id="history" class="page">
+  <h2>📊 Revenue Analytics</h2>
+  <div id="historyContent"></div>
+</div>
+
+<div class="bottom-nav">
+  <button onclick="showPage('home')">Home</button>
+  <button onclick="showPage('stock')">Stock</button>
+  <button onclick="showPage('history')">History</button>
+</div>
+
+</div>
+
+<script>
+
+const products=[
+{name:"🥙 Chapati",price:1000},
+{name:"🥤 Soda Small",price:1000},
+{name:"🥤 Soda Large",price:5000},
+{name:"🍞 Bread 3000",price:3000},
+{name:"🍞 Bread 5000",price:5000},
+{name:"🧁 Cake 500",price:500},
+{name:"🎂 Cake 1000",price:1000},
+{name:"🎂 Cake Pack (6)",price:3000},
+{name:"🍩 Mandazi 500",price:500},
+{name:"🍩 Mandazi Pack (6)",price:3000},
+{name:"🍩 Doughnut 500",price:500},
+{name:"🍩 Doughnut Pack (6)",price:3000},
+{name:"🥛 Yoghurt 1200",price:1200},
+{name:"🥛 Yoghurt 2500",price:2500},
+{name:"🥛 Yoghurt 4000",price:4000},
+{name:"🍰 Big Cake Slice",price:2000},
+{name:"🍰 Big Cake Slice Icing",price:5000},
+{name:"🥣 Obushera",price:1000}
+];
+
+let state=JSON.parse(localStorage.getItem("dukeUltra"))||{
+stock:{},sold:{},family:{},history:{}
+};
+
+function save(){localStorage.setItem("dukeUltra",JSON.stringify(state));}
+
+function login(){
+if(password.value==="Nenia1@#$"){
+loginPage.remove();
+app.classList.remove("hidden");
+renderAll();
+}else loginError.textContent="Wrong password";
+}
+
+function logout(){location.reload();}
+
+function showPage(id){
+document.querySelectorAll(".page").forEach(p=>p.classList.remove("active-page"));
+document.getElementById(id).classList.add("active-page");
+}
+
+function renderWeek(){
+const days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const today=new Date().getDay();
+weekDays.innerHTML="";
+days.forEach((d,i)=>{
+const span=document.createElement("span");
+span.textContent=d;
+span.className="week-btn";
+if(i===today) span.classList.add("active-day");
+weekDays.appendChild(span);
+});
+}
+
+function sellItem(name,qty=1){
+if((state.stock[name]||0)>=qty){
+state.stock[name]-=qty;
+state.sold[name]=(state.sold[name]||0)+qty;
+const price=products.find(p=>p.name===name).price;
+updateHistory(price*qty);
+save();renderAll();
+}
+}
+
+function manualSell(name){
+const qty=parseInt(document.getElementById("sell_"+name).value)||0;
+if(qty>0) sellItem(name,qty);
+}
+
+function familyUse(name){
+const qty=parseInt(document.getElementById("family_"+name).value)||0;
+if((state.stock[name]||0)>=qty){
+state.stock[name]-=qty;
+state.family[name]=(state.family[name]||0)+qty;
+updateHistory(0);
+save();renderAll();
+}
+}
+
+function updateHistory(amount){
+const day=new Date().toDateString();
+if(!state.history[day]) state.history[day]={revenue:0};
+state.history[day].revenue+=amount;
+}
+
+function renderProducts(){
+let total=0;
+let html="<table><tr><th>Item</th><th>Price</th><th>Stock</th><th>Sold</th><th>Actions</th></tr>";
+products.forEach(p=>{
+const stock=state.stock[p.name]||0;
+const sold=state.sold[p.name]||0;
+total+= (state.history[new Date().toDateString()]?.revenue||0);
+html+=`<tr class='row'>
+<td>${p.name}</td>
+<td>UGX ${p.price}</td>
+<td>${stock}</td>
+<td>${sold}</td>
+<td>
+<input type='number' id='sell_${p.name}' placeholder='Qty'>
+<button class='neu-btn' onclick="manualSell('${p.name}')">✔</button>
+<button class='neu-btn' onclick="sellItem('${p.name}')">➕</button>
+</td>
+</tr>`;
+});
+html+="</table>";
+productTable.innerHTML=html;
+totalRevenue.textContent="UGX "+(state.history[new Date().toDateString()]?.revenue||0);
+}
+
+function renderStock(){
+let html="<table><tr><th>Item</th><th>Add Stock</th><th>Family Used</th><th>Total Family Qty</th></tr>";
+products.forEach(p=>{
+html+=`<tr class='row'>
+<td>${p.name}</td>
+<td><input type='number' id='add_${p.name}'><button class='neu-btn' onclick="addStock('${p.name}')">Add</button></td>
+<td><input type='number' id='family_${p.name}'><button class='neu-btn' onclick="familyUse('${p.name}')">Take</button></td>
+<td>${state.family[p.name]||0}</td>
+</tr>`;
+});
+html+="</table>";
+stockTable.innerHTML=html;
+}
+
+function addStock(name){
+const qty=parseInt(document.getElementById("add_"+name).value)||0;
+state.stock[name]=(state.stock[name]||0)+qty;
+save();renderAll();
+}
+
+function renderHistory(){
+let html="";
+let total=0;
+Object.keys(state.history).forEach(day=>{
+total+=state.history[day].revenue;
+html+=`<div class='neu history-card'>
+<h3>📅 ${day}</h3>
+<p><strong>Revenue:</strong> UGX ${state.history[day].revenue}</p>
+</div>`;
+});
+html+=`<div class='neu history-card'><h3>📊 Total Revenue (All Time): UGX ${total}</h3></div>`;
+historyContent.innerHTML=html;
+}
+
+function renderAll(){renderWeek();renderProducts();renderStock();renderHistory();}
+
+</script>
+</body>
+</html>
